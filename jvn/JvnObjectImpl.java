@@ -12,24 +12,29 @@ import java.io.Serializable;
  * @author rozandq
  */
 public class JvnObjectImpl implements JvnObject {
-    State state;
+    Serializable state;
+    Lock lock;
+    int id;
 
-    public JvnObjectImpl() {
-        this.state = State.NL;
+    public JvnObjectImpl(int id) {
+        this.lock = Lock.NL;
+        this.id = id;
     }
 
     @Override
     public void jvnLockRead() throws JvnException {
-        switch(this.state){
+        JvnServerImpl serv = JvnServerImpl.jvnGetServer();
+        switch(this.lock){
             case NL:
-                JvnServerImpl serv = JvnServerImpl.jvnGetServer();
-                //serv.jvnLockRead(joi);
+                this.state = serv.jvnLockRead(this.jvnGetObjectId());
                 break;
             case RC:
-                this.state = State.R;
+                this.state = serv.jvnLockRead(this.jvnGetObjectId());
+                this.lock = Lock.R;
                 break;
             case WC:
-                this.state = State.RWC;
+                this.state = serv.jvnLockRead(this.jvnGetObjectId());
+                this.lock = Lock.RWC;
                 break;
             case R:
                 throw new JvnException("You already have a read lock!");
@@ -52,7 +57,7 @@ public class JvnObjectImpl implements JvnObject {
 
     @Override
     public int jvnGetObjectId() throws JvnException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return -1;
     }
 
     @Override
@@ -72,7 +77,8 @@ public class JvnObjectImpl implements JvnObject {
 
     @Override
     public Serializable jvnInvalidateWriterForReader() throws JvnException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        this.lock = Lock.RC;
+        return this.state;
     }
     
 }

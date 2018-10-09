@@ -11,14 +11,18 @@ package jvn;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
-    HashMap<String, Integer> jvnObjectIds;
+    HashMap<Integer, String> jvnObjectIds;
     HashMap<Integer, JvnObject> jvnObjects;
     HashMap<Integer, JvnRemoteServer> objectIdsLastVersionOwner;
-    
-    //HashMap<Integer, HashMap<JvnRemoteServer, State>> locks;
+    HashMap<Integer, HashMap<JvnRemoteServer, Lock>> locks;
+    HashMap<Integer, LinkedList<ServerWaiting>> waitingQueue;
     
     private int counterObjectId;
 
@@ -31,6 +35,8 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
             this.jvnObjectIds = new HashMap<>();
             this.jvnObjects = new HashMap<>();
             this.objectIdsLastVersionOwner = new HashMap<>();
+            this.locks = new HashMap<>();
+            this.waitingQueue = new HashMap<>();
             
             this.counterObjectId = 0;
 	}
@@ -40,8 +46,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
     *  newly created JVN object)
     * @throws java.rmi.RemoteException,JvnException
     **/
-    public int jvnGetObjectId()
-    throws java.rmi.RemoteException,jvn.JvnException {
+    public int jvnGetObjectId() throws java.rmi.RemoteException,jvn.JvnException {
       return this.counterObjectId++;
     }
   
@@ -53,12 +58,13 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
     * @param js  : the remote reference of the JVNServer
     * @throws java.rmi.RemoteException,JvnException
     **/
-    public void jvnRegisterObject(String jon, JvnObject jo, JvnRemoteServer js)
-    throws java.rmi.RemoteException,jvn.JvnException{
-        int id = this.jvnGetObjectId();
-        this.jvnObjectIds.put(jon, id);
+    public void jvnRegisterObject(String jon, JvnObject jo, JvnRemoteServer js) throws java.rmi.RemoteException,jvn.JvnException{
+        int id = jo.jvnGetObjectId();
+        this.jvnObjectIds.put(id, jon);
         this.jvnObjects.put(id, jo);
         this.objectIdsLastVersionOwner.put(id, js);
+        this.locks.put(id, new HashMap<>());
+        this.waitingQueue.put(id, new LinkedList<>());
     }
   
   /**
@@ -67,8 +73,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
   * @param js : the remote reference of the JVNServer
   * @throws java.rmi.RemoteException,JvnException
   **/
-  public JvnObject jvnLookupObject(String jon, JvnRemoteServer js)
-  throws java.rmi.RemoteException,jvn.JvnException{          
+  public JvnObject jvnLookupObject(String jon, JvnRemoteServer js) throws java.rmi.RemoteException,jvn.JvnException{          
     return null;
   }
   
@@ -79,10 +84,38 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
   * @return the current JVN object state
   * @throws java.rmi.RemoteException, JvnException
   **/
-   public Serializable jvnLockRead(int joi, JvnRemoteServer js)
-   throws java.rmi.RemoteException, JvnException{
+   public Serializable jvnLockRead(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
     // to be completed
-    return null;
+    Serializable state = null;
+    for(Map.Entry mapentry : locks.get(joi).entrySet()){
+        switch((Lock)mapentry.getValue()){
+            case W:
+                this.waitingQueue.get(joi).add(new ServerWaiting(js, Type.READ));
+                try {
+                    js.wait();
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
+                }
+                break;
+                
+            case WC:
+                mapentry.setValue(Lock.RC);
+                state = ((JvnRemoteServer)mapentry.getKey()).jvnInvalidateWriterForReader(joi);
+                break;
+                
+            case RWC:
+                mapentry.setValue(Lock.R);
+                state = ((JvnRemoteServer)mapentry.getKey()).jvnInvalidateWriterForReader(joi);
+                break;
+            
+            default:
+                break;
+            
+        }
+    }
+    
+    this.locks.get(joi).put(js, Lock.R);
+    return state;
    }
 
   /**
@@ -92,8 +125,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
   * @return the current JVN object state
   * @throws java.rmi.RemoteException, JvnException
   **/
-   public Serializable jvnLockWrite(int joi, JvnRemoteServer js)
-   throws java.rmi.RemoteException, JvnException{
+   public Serializable jvnLockWrite(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
     // to be completed
     return null;
    }
@@ -103,8 +135,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
 	* @param js  : the remote reference of the server
 	* @throws java.rmi.RemoteException, JvnException
 	**/
-    public void jvnTerminate(JvnRemoteServer js)
-	 throws java.rmi.RemoteException, JvnException {
+    public void jvnTerminate(JvnRemoteServer js) throws java.rmi.RemoteException, JvnException {
 	 // to be completed
     }
 }

@@ -11,7 +11,7 @@ import java.io.Serializable;
  *
  * @author rozandq
  */
-public enum State implements Serializable {
+public enum Lock implements Serializable {
     NL,
     RC,
     WC,
