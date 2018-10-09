@@ -6,6 +6,8 @@
 package jvn;
 
 import java.io.Serializable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -16,8 +18,9 @@ public class JvnObjectImpl implements JvnObject {
     Lock lock;
     int id;
 
-    public JvnObjectImpl(int id) {
-        this.lock = Lock.NL;
+public JvnObjectImpl(int id, Serializable s) {
+        this.lock = Lock.W;
+        this.state = s;
         this.id = id;
     }
 
@@ -27,14 +30,36 @@ public class JvnObjectImpl implements JvnObject {
         switch(this.lock){
             case NL:
                 this.state = serv.jvnLockRead(this.jvnGetObjectId());
+                this.lock = Lock.R;
                 break;
             case RC:
-                this.state = serv.jvnLockRead(this.jvnGetObjectId());
                 this.lock = Lock.R;
                 break;
             case WC:
-                this.state = serv.jvnLockRead(this.jvnGetObjectId());
                 this.lock = Lock.RWC;
+                break;
+            case R:
+                throw new JvnException("You already have a read lock!");
+            case W:
+                throw new JvnException("You already have a write lock!");
+            case RWC:
+                throw new JvnException("You already have a read lock!");
+        }
+    }
+
+    @Override
+    public void jvnLockWrite() throws JvnException {
+        JvnServerImpl serv = JvnServerImpl.jvnGetServer();
+        switch(this.lock){
+            case NL:
+                this.state = serv.jvnLockWrite(this.jvnGetObjectId());
+                this.lock = Lock.W;
+            case RC:
+                this.state = serv.jvnLockWrite(this.jvnGetObjectId());
+                this.lock = Lock.W;
+                break;
+            case WC:
+                this.lock = Lock.W;
                 break;
             case R:
                 throw new JvnException("You already have a read lock!");
@@ -46,39 +71,104 @@ public class JvnObjectImpl implements JvnObject {
     }
 
     @Override
-    public void jvnLockWrite() throws JvnException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
     public void jvnUnLock() throws JvnException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        switch(this.lock){
+            case R:
+                this.lock = Lock.RC;
+                break;
+            
+            case RWC:
+            case W:
+                this.lock = Lock.WC;
+                break;
+            default:
+                throw new JvnException("JvnObjectImpl - jvnUnLock : " + this.lock);
+                
+        }
+        notify();          
+        
     }
 
     @Override
     public int jvnGetObjectId() throws JvnException {
-        return -1;
+        return this.id;
     }
 
     @Override
     public Serializable jvnGetObjectState() throws JvnException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        return this.state;
     }
 
     @Override
     public void jvnInvalidateReader() throws JvnException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        switch(this.lock){
+            case RC:
+                this.lock = Lock.NL;
+                break;
+            case R:
+                try {
+                    wait();
+                } catch (InterruptedException ex) {
+                    throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
+                }
+                this.lock = Lock.NL;
+                break;
+            default:
+                throw new JvnException("JvnObjectImpl - jvnInvalidateReader : " + this.lock);
+                
+        }
     }
 
     @Override
     public Serializable jvnInvalidateWriter() throws JvnException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        switch(this.lock){
+            case WC:
+                this.lock = Lock.NL;
+                break;
+            // RWC || W
+            case RWC:
+            case W:
+                try {
+                    wait();
+                } catch (InterruptedException ex) {
+                    throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
+                }
+                this.lock = Lock.NL;
+                break;
+            default:
+                throw new JvnException("JvnObjectImpl - jvnInvalidateReader : " + this.lock);
+                
+        }
+        return this.state;
     }
 
     @Override
     public Serializable jvnInvalidateWriterForReader() throws JvnException {
-        this.lock = Lock.RC;
+        switch(this.lock){
+            case WC:
+                this.lock = Lock.RC;
+                break;
+            case W:
+                try {
+                    wait();
+                    this.lock = Lock.RC;
+                    break;
+                } catch (InterruptedException ex) {
+                    throw new JvnException("Error JvnObjectImpl - jvnInvalidateWriterForReader");
+                }
+            case RWC:
+                this.lock = Lock.R;
+                break;
+            default:
+                break;
+        }
+        
         return this.state;
     }
+
+    public void setState(Serializable state) {
+        this.state = state;
+    }
+    
     
 }
