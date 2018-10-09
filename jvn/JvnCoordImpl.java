@@ -46,7 +46,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
     * @throws java.rmi.RemoteException,JvnException
     **/
 
-    public int jvnGetObjectId() throws java.rmi.RemoteException, JvnException {
+    public synchronized int jvnGetObjectId() throws java.rmi.RemoteException, JvnException {
       return this.counterObjectId++;
     }
   
@@ -58,7 +58,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
     * @param js  : the remote reference of the JVNServer
     * @throws java.rmi.RemoteException,JvnException
     **/
-    public void jvnRegisterObject(String jon, JvnObject jo, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
+    public synchronized void jvnRegisterObject(String jon, JvnObject jo, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
         int id = jo.jvnGetObjectId();
         this.jvnObjectIds.put(jon, id);
         this.jvnObjects.put(id, jo);
@@ -73,9 +73,9 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
   * @throws java.rmi.RemoteException,JvnException
   **/
 
-    public JvnObject jvnLookupObject(String jon, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{   
+    public synchronized JvnObject jvnLookupObject(String jon, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{   
         if(!this.jvnObjectIds.containsKey(jon)) return null;
-        return ((JvnObject) this.jvnObjects.get(this.jvnObjectIds.get(jon)));
+        return this.jvnObjects.get(this.jvnObjectIds.get(jon));
     }
   
   /**
@@ -85,22 +85,22 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
   * @return the current JVN object state
   * @throws java.rmi.RemoteException, JvnException
   **/
-   public Serializable jvnLockRead(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
-    // to be completed
-    Serializable state = null;
-    
-    if(this.objectIdsLastVersionOwner.get(joi) == null){
-        state = this.jvnObjects.get(joi).jvnGetObjectState();
-        
-    } else {
-        state = this.objectIdsLastVersionOwner.get(joi).jvnInvalidateWriterForReader(joi);
-        this.objectIdsLastVersionOwner.put(joi, null);
-        ((JvnObjectImpl)this.jvnObjects.get(joi)).setState(state);
+    public synchronized Serializable jvnLockRead(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
+        // to be completed
+        Serializable state = null;
+
+        if(this.objectIdsLastVersionOwner.get(joi) == null){
+            state = this.jvnObjects.get(joi).jvnGetObjectState();
+
+        } else {
+            state = this.objectIdsLastVersionOwner.get(joi).jvnInvalidateWriterForReader(joi);
+            this.objectIdsLastVersionOwner.put(joi, null);
+            ((JvnObjectImpl)this.jvnObjects.get(joi)).setState(state);
+        }
+
+        this.readLocks.get(joi).add(js);
+        return state;
     }
-    
-    this.readLocks.get(joi).add(js);
-    return state;
-   }
 
   /**
   * Get a Write lock on a JVN object managed by a given JVN server 
@@ -109,7 +109,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
   * @return the current JVN object state
   * @throws java.rmi.RemoteException, JvnException
   **/
-   public Serializable jvnLockWrite(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
+   public synchronized Serializable jvnLockWrite(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
     // to be completed
        Serializable state = null;
        
@@ -133,8 +133,16 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
 	* @param js  : the remote reference of the server
 	* @throws java.rmi.RemoteException, JvnException
 	**/
-    public void jvnTerminate(JvnRemoteServer js) throws java.rmi.RemoteException, JvnException {
+    public synchronized void jvnTerminate(JvnRemoteServer js) throws java.rmi.RemoteException, JvnException {
 	 // to be completed
+         Serializable state;
+         for(Map.Entry mapentry : this.objectIdsLastVersionOwner.entrySet()){
+             if( (mapentry.getValue() != null) && (((JvnRemoteServer)mapentry.getValue()).equals(js)) ){
+                state = ((JvnRemoteServer)mapentry.getValue()).jvnInvalidateWriter((Integer) mapentry.getKey());
+                ((JvnObjectImpl)this.jvnObjects.get((Integer) mapentry.getKey())).setState(state);
+                this.objectIdsLastVersionOwner.put((Integer) mapentry.getKey(), js);
+             }
+         }
     }
 }
 

@@ -25,7 +25,7 @@ public JvnObjectImpl(int id, Serializable s) {
     }
 
     @Override
-    public void jvnLockRead() throws JvnException {
+    public synchronized void jvnLockRead() throws JvnException {
         JvnServerImpl serv = JvnServerImpl.jvnGetServer();
         switch(this.lock){
             case NL:
@@ -48,7 +48,7 @@ public JvnObjectImpl(int id, Serializable s) {
     }
 
     @Override
-    public void jvnLockWrite() throws JvnException {
+    public synchronized void jvnLockWrite() throws JvnException {
         JvnServerImpl serv = JvnServerImpl.jvnGetServer();
         switch(this.lock){
             case NL:
@@ -66,12 +66,12 @@ public JvnObjectImpl(int id, Serializable s) {
             case W:
                 throw new JvnException("You already have a write lock!");
             case RWC:
-                throw new JvnException("You already have a read-write-cached lock!");
+                throw new JvnException("You already have a read lock!");
         }
     }
 
     @Override
-    public void jvnUnLock() throws JvnException {
+    public synchronized void jvnUnLock() throws JvnException {
         switch(this.lock){
             case R:
                 this.lock = Lock.RC;
@@ -95,12 +95,12 @@ public JvnObjectImpl(int id, Serializable s) {
     }
 
     @Override
-    public Serializable jvnGetObjectState() throws JvnException {
+    public synchronized Serializable jvnGetObjectState() throws JvnException {
         return this.state;
     }
 
     @Override
-    public void jvnInvalidateReader() throws JvnException {
+    public synchronized void jvnInvalidateReader() throws JvnException {
         switch(this.lock){
             case RC:
                 this.lock = Lock.NL;
@@ -143,7 +143,7 @@ public JvnObjectImpl(int id, Serializable s) {
     }
 
     @Override
-    public Serializable jvnInvalidateWriterForReader() throws JvnException {
+    public synchronized Serializable jvnInvalidateWriterForReader() throws JvnException {
         switch(this.lock){
             case WC:
                 this.lock = Lock.RC;
