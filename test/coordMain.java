@@ -6,6 +6,9 @@
 package test;
 
 import static java.lang.System.exit;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
 import jvn.*;
 
 /**
@@ -20,11 +23,12 @@ public class coordMain {
     public static void main(String[] args) throws Exception {
         JvnCoordImpl coord = new JvnCoordImpl();
         
+//        JvnRemoteCoord remoteCoord = (JvnRemoteCoord) UnicastRemoteObject.exportObject(coord, 0);
+        
+        Registry registry = LocateRegistry.getRegistry();
+        registry.rebind("coord_service", coord);
         
         
-        
-        
-        exit(0);
     }
     
 }
