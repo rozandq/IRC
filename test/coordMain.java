@@ -23,12 +23,10 @@ public class coordMain {
     public static void main(String[] args) throws Exception {
         JvnCoordImpl coord = new JvnCoordImpl();
         
-//        JvnRemoteCoord remoteCoord = (JvnRemoteCoord) UnicastRemoteObject.exportObject(coord, 0);
+        Registry registry = LocateRegistry.createRegistry(1333);
+        registry.bind("coord_service", coord);
         
-        Registry registry = LocateRegistry.getRegistry();
-        registry.rebind("coord_service", coord);
-        
-        
+        System.out.println("Coordinator ready !");
     }
     
 }

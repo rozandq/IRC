@@ -15,7 +15,6 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,10 +35,22 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     private JvnServerImpl() throws Exception {
             super();
             
+            System.out.println("Creating server..");
+            
             this.jvnObjects = new HashMap<>();
             this.jvnObjectNames = new HashMap<>();
-            Registry registry = LocateRegistry.getRegistry("127.0.0.1"); 
-            coord = (JvnCoordImpl) registry.lookup("coord");
+            Registry registry = LocateRegistry.getRegistry("127.0.0.1", 1333); 
+            System.out.println("RMI OK");
+            try {
+                coord = (JvnRemoteCoord) registry.lookup("coord_service");
+            }
+            catch (Exception e){
+                System.out.println("coord : " + coord);
+                System.out.println("Erreur : " + e);                        
+            }
+            
+            
+            System.out.println("Server successfully created !");
     }
 	
     /**

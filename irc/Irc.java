@@ -46,7 +46,7 @@ public class Irc {
 		 new Irc(jo);
 	   
 	   } catch (Exception e) {
-		   System.out.println("IRC problem : " + e.getMessage());
+		   System.out.println("IRC problem : " + e);
 	   }
 	}
 
