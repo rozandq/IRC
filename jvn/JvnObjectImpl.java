@@ -14,11 +14,11 @@ import java.util.logging.Logger;
  * @author rozandq
  */
 public class JvnObjectImpl implements JvnObject {
-    Serializable state;
-    Lock lock;
+    private Serializable state;
+    private Lock lock;
     int id;
 
-public JvnObjectImpl(int id, Serializable s) {
+    public JvnObjectImpl(int id, Serializable s) {
         this.lock = Lock.W;
         this.state = s;
         this.id = id;
@@ -85,6 +85,7 @@ public JvnObjectImpl(int id, Serializable s) {
                 throw new JvnException("JvnObjectImpl - jvnUnLock : " + this.lock);
                 
         }
+        System.out.println("Notify");
         notify();          
         
     }
@@ -101,12 +102,14 @@ public JvnObjectImpl(int id, Serializable s) {
 
     @Override
     public synchronized void jvnInvalidateReader() throws JvnException {
+    	System.out.println("invR");
         switch(this.lock){
             case RC:
                 this.lock = Lock.NL;
                 break;
             case R:
                 try {
+                	System.out.println("(R)Waiting..");
                     wait();
                 } catch (InterruptedException ex) {
                     throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
@@ -120,7 +123,8 @@ public JvnObjectImpl(int id, Serializable s) {
     }
 
     @Override
-    public Serializable jvnInvalidateWriter() throws JvnException {
+    public synchronized Serializable jvnInvalidateWriter() throws JvnException {
+    	System.out.println("invW");
         switch(this.lock){
             case WC:
                 this.lock = Lock.NL;
@@ -129,6 +133,7 @@ public JvnObjectImpl(int id, Serializable s) {
             case RWC:
             case W:
                 try {
+                	System.out.println("(W)Waiting..");
                     wait();
                 } catch (InterruptedException ex) {
                     throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
@@ -144,12 +149,14 @@ public JvnObjectImpl(int id, Serializable s) {
 
     @Override
     public synchronized Serializable jvnInvalidateWriterForReader() throws JvnException {
+    	System.out.println("invWFR");
         switch(this.lock){
             case WC:
                 this.lock = Lock.RC;
                 break;
             case W:
                 try {
+                	System.out.println("(WFR)Waiting..");
                     wait();
                     this.lock = Lock.RC;
                     break;
@@ -170,5 +177,7 @@ public JvnObjectImpl(int id, Serializable s) {
         this.state = state;
     }
     
-    
+    public void setLock(Lock lock) {
+    	this.lock = lock;
+    }
 }
