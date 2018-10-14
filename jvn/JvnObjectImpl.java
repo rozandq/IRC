@@ -108,12 +108,13 @@ public class JvnObjectImpl implements JvnObject {
                 this.lock = Lock.NL;
                 break;
             case R:
-                try {
-                	System.out.println("(R)Waiting..");
-                    wait();
-                } catch (InterruptedException ex) {
-                    throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
-                }
+//                try {
+                    System.out.println("(R)Waiting..");
+                    System.out.flush();
+//                    wait();
+//                } catch (InterruptedException ex) {
+//                    throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
+//                }
                 this.lock = Lock.NL;
                 break;
             default:
@@ -132,12 +133,13 @@ public class JvnObjectImpl implements JvnObject {
             // RWC || W
             case RWC:
             case W:
-                try {
-                	System.out.println("(W)Waiting..");
-                    wait();
-                } catch (InterruptedException ex) {
-                    throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
-                }
+//                try {
+                    System.out.println("(W)Waiting..");
+                    System.out.flush();
+//                    wait();
+//                } catch (InterruptedException ex) {
+//                    throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
+//                }
                 this.lock = Lock.NL;
                 break;
             default:
@@ -155,14 +157,14 @@ public class JvnObjectImpl implements JvnObject {
                 this.lock = Lock.RC;
                 break;
             case W:
-                try {
-                	System.out.println("(WFR)Waiting..");
-                    wait();
+//                try {
+                    System.out.println("(WFR)Waiting..");
+//                    wait();
                     this.lock = Lock.RC;
                     break;
-                } catch (InterruptedException ex) {
-                    throw new JvnException("Error JvnObjectImpl - jvnInvalidateWriterForReader");
-                }
+//                } catch (InterruptedException ex) {
+//                    throw new JvnException("Error JvnObjectImpl - jvnInvalidateWriterForReader");
+//                }
             case RWC:
                 this.lock = Lock.R;
                 break;
