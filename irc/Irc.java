@@ -37,16 +37,20 @@ public class Irc {
 		JvnObject jo = js.jvnLookupObject("IRC");
 		   
 		if (jo == null) {
+			System.out.println("Création d'un objet Sentence..");
 			jo = js.jvnCreateObject((Serializable) new Sentence());
 			// after creation, I have a write lock on the object
 			jo.jvnUnLock();
 			js.jvnRegisterObject("IRC", jo);
+			System.out.println("Création terminée.");
 		}
+		System.out.println("IRC id : " + jo.jvnGetObjectId());
 		// create the graphical part of the Chat application
 		 new Irc(jo);
 	   
 	   } catch (Exception e) {
-		   System.out.println("IRC problem : " + e.getMessage());
+		   System.out.println("IRC problem : ");
+		   e.printStackTrace();
 	   }
 	}
 
@@ -125,20 +129,20 @@ public class Irc {
    **/
 	public void actionPerformed (ActionEvent e) {
 	   try {	
-		// get the value to be written from the buffer
-    String s = irc.data.getText();
-        	
-    // lock the object in write mode
-		irc.sentence.jvnLockWrite();
-		
-		// invoke the method
-		((Sentence)(irc.sentence.jvnGetObjectState())).write(s);
-		
-		// unlock the object
-		irc.sentence.jvnUnLock();
-	 } catch (JvnException je) {
+			// get the value to be written from the buffer
+		    String s = irc.data.getText();
+		        	
+		    // lock the object in write mode
+			irc.sentence.jvnLockWrite();
+			
+			// invoke the method
+			((Sentence)(irc.sentence.jvnGetObjectState())).write(s);
+			
+			// unlock the object
+			irc.sentence.jvnUnLock();
+	   } catch (JvnException je) {
 		   System.out.println("IRC problem  : " + je.getMessage());
-	 }
+	   }
 	}
 }
 

@@ -12,10 +12,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
@@ -61,6 +58,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
     public synchronized void jvnRegisterObject(String jon, JvnObject jo, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
         int id = jo.jvnGetObjectId();
         this.jvnObjectIds.put(jon, id);
+        ((JvnObjectImpl) jo).setLock(Lock.NL);
         this.jvnObjects.put(id, jo);
         this.objectIdsLastVersionOwner.put(id, js);
         this.readLocks.put(id, new ArrayList<>());
@@ -88,7 +86,6 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
     public synchronized Serializable jvnLockRead(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
         // to be completed
         Serializable state = null;
-
         if(this.objectIdsLastVersionOwner.get(joi) == null){
             state = this.jvnObjects.get(joi).jvnGetObjectState();
 
@@ -124,6 +121,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
        for(JvnRemoteServer jvnServer : this.readLocks.get(joi)){
                jvnServer.jvnInvalidateReader(joi);
            }
+       this.readLocks.get(joi).clear();
        
     return state;
    }

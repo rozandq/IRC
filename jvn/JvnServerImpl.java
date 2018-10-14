@@ -15,7 +15,6 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -36,10 +35,11 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     private JvnServerImpl() throws Exception {
             super();
             
+            
             this.jvnObjects = new HashMap<>();
             this.jvnObjectNames = new HashMap<>();
-            Registry registry = LocateRegistry.getRegistry("127.0.0.1"); 
-            coord = (JvnCoordImpl) registry.lookup("coord");
+            Registry registry = LocateRegistry.getRegistry("127.0.0.1", 1333); 
+            coord = (JvnRemoteCoord) registry.lookup("coord_service");
     }
 	
     /**
@@ -52,6 +52,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
                 try {
                         js = new JvnServerImpl();
                 } catch (Exception e) {
+                		System.out.println("Error getServer");
                         return null;
                 }
         }
@@ -99,6 +100,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     public void jvnRegisterObject(String jon, JvnObject jo) throws jvn.JvnException {
         try {
             // to be completed
+        	this.jvnObjects.put(jo.jvnGetObjectId(), jo);
             this.coord.jvnRegisterObject(jon, jo, this.js);
         } catch (RemoteException ex) {
             Logger.getLogger(JvnServerImpl.class.getName()).log(Level.SEVERE, null, ex);
@@ -114,7 +116,9 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     **/
     public JvnObject jvnLookupObject(String jon) throws jvn.JvnException {
         try {
-            return this.coord.jvnLookupObject(jon, this.js);
+        	JvnObject jo = this.coord.jvnLookupObject(jon, this.js);
+        	if (jo != null) this.jvnObjects.put(jo.jvnGetObjectId(), jo);
+            return jo;
         } catch (RemoteException ex) {
             Logger.getLogger(JvnServerImpl.class.getName()).log(Level.SEVERE, null, ex);
             throw new JvnException("Error JvnServerImpl - jvnLookupObject");
@@ -130,7 +134,6 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     public Serializable jvnLockRead(int joi) throws JvnException {
         try {
             // to be completed
-            
             return this.coord.jvnLockRead(joi, this.js);
             
         } catch (RemoteException ex) {
@@ -193,7 +196,6 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     **/
     public synchronized Serializable jvnInvalidateWriterForReader(int joi) throws java.rmi.RemoteException,jvn.JvnException { 
            // to be completed 
-            
            return this.jvnObjects.get(joi).jvnInvalidateWriterForReader();
     };
 }

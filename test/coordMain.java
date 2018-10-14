@@ -5,7 +5,8 @@
  */
 package test;
 
-import static java.lang.System.exit;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import jvn.*;
 
 /**
@@ -20,11 +21,10 @@ public class coordMain {
     public static void main(String[] args) throws Exception {
         JvnCoordImpl coord = new JvnCoordImpl();
         
+        Registry registry = LocateRegistry.createRegistry(1333);
+        registry.bind("coord_service", coord);
         
-        
-        
-        
-        exit(0);
+        System.out.println("Coordinator ready !");
     }
     
 }
