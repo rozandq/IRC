@@ -13,6 +13,8 @@ import java.awt.event.*;
 
 import jvn.*;
 import java.io.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 public class Irc {
@@ -74,9 +76,24 @@ public class Irc {
 		Button write_button = new Button("write");
 		write_button.addActionListener(new writeListener(this));
 		frame.add(write_button);
+                Button unlock_button = new Button("unlock");
+		unlock_button.addActionListener(new unlockListener(this));
+		frame.add(unlock_button);
 		frame.setSize(545,201);
 		text.setBackground(Color.black); 
 		frame.setVisible(true);
+                
+                frame.addWindowListener(new WindowAdapter(){
+                    @Override
+                    public void windowClosing(WindowEvent e){
+                        try {
+                            JvnServerImpl.jvnGetServer().jvnTerminate();
+                            System.exit(0);
+                        } catch (JvnException ex) {
+                            Logger.getLogger(Irc.class.getName()).log(Level.SEVERE, null, ex);
+                        }
+                    }
+                });
 	}
 }
 
@@ -103,7 +120,7 @@ public class Irc {
 		String s = ((Sentence)(irc.sentence.jvnGetObjectState())).read();
 		
 		// unlock the object
-		irc.sentence.jvnUnLock();
+//		irc.sentence.jvnUnLock();
 		
 		// display the read value
 		irc.data.setText(s);
@@ -139,9 +156,38 @@ public class Irc {
 			((Sentence)(irc.sentence.jvnGetObjectState())).write(s);
 			
 			// unlock the object
-			irc.sentence.jvnUnLock();
 	   } catch (JvnException je) {
 		   System.out.println("IRC problem  : " + je.getMessage());
+	   }
+	}
+}
+
+class unlockListener implements ActionListener {
+	Irc irc;
+  
+	public unlockListener (Irc i) {
+		irc = i;
+	}
+   
+ /**
+  * Management of user events
+  **/
+	public void actionPerformed (ActionEvent e) {
+	 try {
+		// lock the object in read mode
+//		irc.sentence.jvnLockRead();
+//		
+//		// invoke the method
+//		String s = ((Sentence)(irc.sentence.jvnGetObjectState())).read();
+//		
+//		// unlock the object
+		irc.sentence.jvnUnLock();
+//		
+//		// display the read value
+//		irc.data.setText(s);
+//		irc.text.append(s+"\n");
+	   } catch (JvnException je) {
+		   System.out.println("IRC problem : " + je.getMessage());
 	   }
 	}
 }

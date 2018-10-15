@@ -49,11 +49,13 @@ public class JvnObjectImpl implements JvnObject {
 
     @Override
     public synchronized void jvnLockWrite() throws JvnException {
+        System.out.println("Object - LockWrite");
         JvnServerImpl serv = JvnServerImpl.jvnGetServer();
         switch(this.lock){
             case NL:
                 this.state = serv.jvnLockWrite(this.jvnGetObjectId());
                 this.lock = Lock.W;
+                break;
             case RC:
                 this.state = serv.jvnLockWrite(this.jvnGetObjectId());
                 this.lock = Lock.W;
@@ -68,10 +70,12 @@ public class JvnObjectImpl implements JvnObject {
             case RWC:
                 throw new JvnException("You already have a read lock!");
         }
+        System.out.println("Object - LockWrite - Done");
     }
 
     @Override
     public synchronized void jvnUnLock() throws JvnException {
+        System.out.println("Unlock");
         switch(this.lock){
             case R:
                 this.lock = Lock.RC;
@@ -108,14 +112,16 @@ public class JvnObjectImpl implements JvnObject {
                 this.lock = Lock.NL;
                 break;
             case R:
-//                try {
+                try {
                     System.out.println("(R)Waiting..");
                     System.out.flush();
-//                    wait();
-//                } catch (InterruptedException ex) {
-//                    throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
-//                }
+                    wait();
+                } catch (InterruptedException ex) {
+                    throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
+                }
                 this.lock = Lock.NL;
+                break;
+            case NL:
                 break;
             default:
                 throw new JvnException("JvnObjectImpl - jvnInvalidateReader : " + this.lock);
@@ -133,14 +139,16 @@ public class JvnObjectImpl implements JvnObject {
             // RWC || W
             case RWC:
             case W:
-//                try {
+                try {
                     System.out.println("(W)Waiting..");
                     System.out.flush();
-//                    wait();
-//                } catch (InterruptedException ex) {
-//                    throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
-//                }
+                    wait();
+                } catch (InterruptedException ex) {
+                    throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
+                }
                 this.lock = Lock.NL;
+                break;
+            case NL:
                 break;
             default:
                 throw new JvnException("JvnObjectImpl - jvnInvalidateReader : " + this.lock);
@@ -157,16 +165,18 @@ public class JvnObjectImpl implements JvnObject {
                 this.lock = Lock.RC;
                 break;
             case W:
-//                try {
+                try {
                     System.out.println("(WFR)Waiting..");
-//                    wait();
+                    wait();
                     this.lock = Lock.RC;
                     break;
-//                } catch (InterruptedException ex) {
-//                    throw new JvnException("Error JvnObjectImpl - jvnInvalidateWriterForReader");
-//                }
+                } catch (InterruptedException ex) {
+                    throw new JvnException("Error JvnObjectImpl - jvnInvalidateWriterForReader");
+                }
             case RWC:
                 this.lock = Lock.R;
+                break;
+            case NL:
                 break;
             default:
                 break;

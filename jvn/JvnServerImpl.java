@@ -40,6 +40,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
             this.jvnObjectNames = new HashMap<>();
             Registry registry = LocateRegistry.getRegistry("127.0.0.1", 1333); 
             coord = (JvnRemoteCoord) registry.lookup("coord_service");
+            System.out.println("Serveur : " + this.toString());
     }
 	
     /**
@@ -138,7 +139,6 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
             
         } catch (RemoteException ex) {
             System.out.println("Erreur JvnServeurImpl - jvnLockRead : " + ex);
-            exit(1);
             return null;
         }
     }
@@ -150,14 +150,16 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     * @throws  JvnException
     **/
     public Serializable jvnLockWrite(int joi) throws JvnException {
+        System.out.println("Server - LockWrite");
            try {
             // to be completed
+            Serializable state = this.coord.jvnLockWrite(joi, this.js);
+            System.out.println("Server - LockWrite - Done");
             
-            return this.coord.jvnLockWrite(joi, this.js);
+            return state;
             
-        } catch (RemoteException ex) {
+        } catch (Exception ex) {
             System.out.println("Erreur JvnServeurImpl - jvnLockWrite : " + ex);
-            exit(1);
             return null;
         }
     }	
@@ -172,7 +174,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     **/
     public synchronized void jvnInvalidateReader(int joi) throws java.rmi.RemoteException,jvn.JvnException {
             // to be completed 
-
+        System.out.println("Server - invR");
         this.jvnObjects.get(joi).jvnInvalidateReader();
             
     };

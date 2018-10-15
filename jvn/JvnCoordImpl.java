@@ -62,6 +62,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
         this.jvnObjects.put(id, jo);
         this.objectIdsLastVersionOwner.put(id, js);
         this.readLocks.put(id, new ArrayList<>());
+        this.readLocks.get(id).add(js);
     }
   
   /**
@@ -91,6 +92,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
 
         } else {
             state = this.objectIdsLastVersionOwner.get(joi).jvnInvalidateWriterForReader(joi);
+            this.readLocks.get(joi).add(this.objectIdsLastVersionOwner.get(joi));
             this.objectIdsLastVersionOwner.put(joi, null);
             ((JvnObjectImpl)this.jvnObjects.get(joi)).setState(state);
         }
@@ -107,23 +109,29 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
   * @throws java.rmi.RemoteException, JvnException
   **/
    public synchronized Serializable jvnLockWrite(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
+        System.out.println("Coord - LockWrite");
     // to be completed
-       Serializable state = null;
-       
-       if(this.objectIdsLastVersionOwner.get(joi) == null){
-           state = this.jvnObjects.get(joi).jvnGetObjectState();
-       } else {
-           state = this.objectIdsLastVersionOwner.get(joi).jvnInvalidateWriter(joi);
-           
-           
-       }
-       this.objectIdsLastVersionOwner.put(joi, js);
-       for(JvnRemoteServer jvnServer : this.readLocks.get(joi)){
-               jvnServer.jvnInvalidateReader(joi);
-           }
-       this.readLocks.get(joi).clear();
-       
-    return state;
+        Serializable state = null;
+
+        if(this.objectIdsLastVersionOwner.get(joi) == null){
+            state = this.jvnObjects.get(joi).jvnGetObjectState();
+        } else {
+            state = this.objectIdsLastVersionOwner.get(joi).jvnInvalidateWriter(joi);
+
+
+        }
+        System.out.println("InvalidateWriter done");
+        this.objectIdsLastVersionOwner.put(joi, js);
+        for(JvnRemoteServer jvnServer : this.readLocks.get(joi)){
+            if(! jvnServer.equals(js)){
+                System.out.println("InvalidateReader : " + jvnServer.toString());
+                jvnServer.jvnInvalidateReader(joi);
+                System.out.println("InvalidateReader Done");
+            }
+        }
+        this.readLocks.get(joi).clear();
+        System.out.println("Coord - LockWrite - Done");
+        return state;
    }
 
 	/**
@@ -133,14 +141,15 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
 	**/
     public synchronized void jvnTerminate(JvnRemoteServer js) throws java.rmi.RemoteException, JvnException {
 	 // to be completed
-         Serializable state;
-         for(Map.Entry mapentry : this.objectIdsLastVersionOwner.entrySet()){
-             if( (mapentry.getValue() != null) && (((JvnRemoteServer)mapentry.getValue()).equals(js)) ){
-                state = ((JvnRemoteServer)mapentry.getValue()).jvnInvalidateWriter((Integer) mapentry.getKey());
-                ((JvnObjectImpl)this.jvnObjects.get((Integer) mapentry.getKey())).setState(state);
-                this.objectIdsLastVersionOwner.put((Integer) mapentry.getKey(), js);
-             }
-         }
+        System.out.println("Coor - terminate");
+        Serializable state;
+        for(Map.Entry mapentry : this.objectIdsLastVersionOwner.entrySet()){
+            if( (mapentry.getValue() != null) && (((JvnRemoteServer)mapentry.getValue()).equals(js)) ){
+               state = ((JvnRemoteServer)mapentry.getValue()).jvnInvalidateWriter((Integer) mapentry.getKey());
+               ((JvnObjectImpl)this.jvnObjects.get((Integer) mapentry.getKey())).setState(state);
+               this.objectIdsLastVersionOwner.put((Integer) mapentry.getKey(), null);
+            }
+        }
     }
 }
 
