@@ -5,13 +5,17 @@
  */
 package test;
 
+import jvn.JvnAnnotation;
+import jvn.JvnAnnotation.JvnAnnotationType;
+
 /**
  *
  * @author mariobap
  */
 public interface TestProxyInterface {
-    @MethodType (name = "get")
-    public String getText(); 
-    @MethodType (name = "set")
+    
+    @JvnAnnotation(type = JvnAnnotationType.READ)
+    public String getText();
+    @JvnAnnotation(type = JvnAnnotationType.WRITE)
     public void setText(String text); 
 }

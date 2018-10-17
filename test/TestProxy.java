@@ -5,13 +5,15 @@
  */
 package test;
 
+import java.io.Serializable;
+import jvn.JvnException;
 import jvn.JvnProxy;
 
 /**
  *
  * @author mariobap
  */
-public class TestProxy implements TestProxyInterface {
+public class TestProxy implements TestProxyInterface, Serializable {
     String text;
     
     public TestProxy(String text){
@@ -31,7 +33,7 @@ public class TestProxy implements TestProxyInterface {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws JvnException {
         TestProxyInterface test = (TestProxyInterface) JvnProxy.newInstance(new TestProxy("Hello World!"));
         
         test.getText();

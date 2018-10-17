@@ -3,13 +3,16 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package test;
+package jvn;
 import java.lang.annotation.*; 
 
 // Is the annotation available at execution time 
 @Retention(RetentionPolicy.RUNTIME)  
 // Annotation associated with a type (Classe, interface)
 @Target(ElementType.METHOD)  
-public @interface MethodType {  
-    String name();  
-} 
+public @interface JvnAnnotation { 
+    public enum JvnAnnotationType {READ, WRITE}
+    
+    JvnAnnotationType type() default JvnAnnotationType.WRITE;  
+}
+
