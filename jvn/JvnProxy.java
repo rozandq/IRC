@@ -16,37 +16,45 @@ import java.lang.reflect.Method;
 public class JvnProxy implements InvocationHandler {
     private JvnObject jvnObject;
     
-    private JvnProxy(Object obj, Serializable state) throws JvnException{
+    private JvnProxy(Serializable state) throws JvnException{
         this.jvnObject = JvnServerImpl.jvnGetServer().jvnCreateObject(state);
         this.jvnObject.jvnUnLock();
         JvnServerImpl.jvnGetServer().jvnRegisterObject("IRC", this.jvnObject);
+    }
+    
+    private JvnProxy(JvnObject jvnObj) throws JvnException{
+        this.jvnObject = jvnObj;
     } 
     
-    public static Object newInstance(Serializable state) throws JvnException { 
-        return java.lang.reflect.Proxy.newProxyInstance(state.getClass().getClassLoader(), state.getClass().getInterfaces(), new JvnProxy(state, JvnServerImpl.jvnGetServer().jvnCreateObject(state))); 
+    public static Object newInstance(Serializable state) throws JvnException {
+        return java.lang.reflect.Proxy.newProxyInstance(state.getClass().getClassLoader(), state.getClass().getInterfaces(), new JvnProxy(state)); 
     } 
+    
+    public static Object newInstance(String name) throws JvnException{
+        JvnObject jvnObj = JvnServerImpl.jvnGetServer().jvnLookupObject(name);
+        if(jvnObj == null) return null;
+        return java.lang.reflect.Proxy.newProxyInstance(jvnObj.jvnGetObjectState().getClass().getClassLoader(), jvnObj.jvnGetObjectState().getClass().getInterfaces(), new JvnProxy(jvnObj));
+    }
+    
     
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) 
       throws Throwable {
         
-//        System.out.println("Invoked method: " + method.getName());
-//        
-//        JvnAnnotation methodType = method.getAnnotation(JvnAnnotation.class);
-//        System.out.println("Method type: " + methodType.type());
-// 
-//        return "test";
+        System.out.println("Methode : " + method.getName());
+        
+        
         
         JvnAnnotation methodType = method.getAnnotation(JvnAnnotation.class);
         if(methodType.type() == JvnAnnotation.JvnAnnotationType.READ){
             this.jvnObject.jvnLockRead();
         }
-        else {
+        else if (methodType.type() == JvnAnnotation.JvnAnnotationType.WRITE) {
             this.jvnObject.jvnLockWrite();
         }
         
-        Object obj = method.invoke(proxy, args);
-        
+        Object obj = method.invoke(this.jvnObject.jvnGetObjectState(), args);
+                
         this.jvnObject.jvnUnLock();
         
         return obj;
