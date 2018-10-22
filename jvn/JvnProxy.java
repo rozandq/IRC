@@ -16,18 +16,21 @@ import java.lang.reflect.Method;
 public class JvnProxy implements InvocationHandler {
     private JvnObject jvnObject;
     
-    private JvnProxy(Serializable state) throws JvnException{
+    private JvnProxy(String name, Serializable state) throws JvnException{
         this.jvnObject = JvnServerImpl.jvnGetServer().jvnCreateObject(state);
         this.jvnObject.jvnUnLock();
-        JvnServerImpl.jvnGetServer().jvnRegisterObject("IRC", this.jvnObject);
+        JvnServerImpl.jvnGetServer().jvnRegisterObject(name, this.jvnObject);
     }
     
     private JvnProxy(JvnObject jvnObj) throws JvnException{
         this.jvnObject = jvnObj;
     } 
     
-    public static Object newInstance(Serializable state) throws JvnException {
-        return java.lang.reflect.Proxy.newProxyInstance(state.getClass().getClassLoader(), state.getClass().getInterfaces(), new JvnProxy(state)); 
+    public static Object newInstance(String name, Serializable state) throws JvnException {
+        if(JvnServerImpl.jvnGetServer().jvnLookupObject(name) != null){
+            throw new JvnException("Erreur création de l'object partagé, le nom " + name + " existe déjà.");
+        }
+        return java.lang.reflect.Proxy.newProxyInstance(state.getClass().getClassLoader(), state.getClass().getInterfaces(), new JvnProxy(name, state)); 
     } 
     
     public static Object newInstance(String name) throws JvnException{

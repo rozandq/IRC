@@ -30,22 +30,19 @@ public class IrcProxy {
   **/
 	public static void main(String argv[]) {
 	   try {
-		             System.out.println("irc.IrcProxy.main()");
-//		// initialize JVN
-//		JvnServerImpl js = JvnServerImpl.jvnGetServer();
+		System.out.println("irc.IrcProxy.main()");
 //		
-//		// look up the IRC object in the JVN server
-//		// if not found, create it, and register it in the JVN server
-//		JvnObject jo = js.jvnLookupObject("IRC");
+//                SentenceInterface sentence = (SentenceInterface) JvnProxy.newInstance("IRC", new Sentence());
+//                sentence = (SentenceInterface) JvnProxy.newInstance("IRC", new Sentence());
 
-                SentenceInterface sentence = (SentenceInterface) JvnProxy.newInstance("IRC");
+              SentenceInterface sentence = (SentenceInterface) JvnProxy.newInstance("IRC");
 		   
 		if (sentence == null) {
 			System.out.println("Création d'un objet Sentence..");
-			sentence = (SentenceInterface) JvnProxy.newInstance(new Sentence());
+			sentence = (SentenceInterface) JvnProxy.newInstance("IRC", new Sentence());
 			System.out.println("Création terminée.");
 		}
-		// create the graphical part of the Chat application
+//		 create the graphical part of the Chat application
 		 new IrcProxy(sentence);
 	   
 	   } catch (Exception e) {

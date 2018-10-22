@@ -34,7 +34,7 @@ public class TestProxy implements TestProxyInterface, Serializable {
      * @param args the command line arguments
      */
     public static void main(String[] args) throws JvnException {
-        TestProxyInterface test = (TestProxyInterface) JvnProxy.newInstance(new TestProxy("Hello World!"));
+        TestProxyInterface test = (TestProxyInterface) JvnProxy.newInstance("test", new TestProxy("Hello World!"));
         
         test.getText();
         test.setText("coucou");

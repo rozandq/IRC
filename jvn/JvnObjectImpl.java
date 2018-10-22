@@ -26,6 +26,7 @@ public class JvnObjectImpl implements JvnObject {
 
     @Override
     public synchronized void jvnLockRead() throws JvnException {
+        System.out.println("Object - LockRead");
         JvnServerImpl serv = JvnServerImpl.jvnGetServer();
         switch(this.lock){
             case NL:

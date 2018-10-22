@@ -10,6 +10,8 @@ package jvn;
 
 import java.rmi.server.UnicastRemoteObject;
 import java.io.Serializable;
+import java.net.SocketException;
+import java.rmi.UnmarshalException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -83,22 +85,31 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
   * @param js  : the remote reference of the server
   * @return the current JVN object state
   * @throws java.rmi.RemoteException, JvnException
+  * @throws jvn.JvnException
   **/
     public synchronized Serializable jvnLockRead(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
         // to be completed
-        Serializable state = null;
-        if(this.objectIdsLastVersionOwner.get(joi) == null){
-            state = this.jvnObjects.get(joi).jvnGetObjectState();
+            Serializable state = null;
+        try {
+            if(this.objectIdsLastVersionOwner.get(joi) == null){
+                state = this.jvnObjects.get(joi).jvnGetObjectState();
 
-        } else {
-            state = this.objectIdsLastVersionOwner.get(joi).jvnInvalidateWriterForReader(joi);
-            this.readLocks.get(joi).add(this.objectIdsLastVersionOwner.get(joi));
+            } else {
+                state = this.objectIdsLastVersionOwner.get(joi).jvnInvalidateWriterForReader(joi);
+                this.readLocks.get(joi).add(this.objectIdsLastVersionOwner.get(joi));
+                this.objectIdsLastVersionOwner.put(joi, null);
+                ((JvnObjectImpl)this.jvnObjects.get(joi)).setState(state);
+            }
+
+            this.readLocks.get(joi).add(js);
+        } catch (UnmarshalException ex){
+            System.out.println("Hôte perdu");
             this.objectIdsLastVersionOwner.put(joi, null);
-            ((JvnObjectImpl)this.jvnObjects.get(joi)).setState(state);
+            this.readLocks.get(joi).add(js);
+            state = this.jvnObjects.get(joi).jvnGetObjectState();
         }
-
-        this.readLocks.get(joi).add(js);
-        return state;
+        
+            return state;
     }
 
   /**
