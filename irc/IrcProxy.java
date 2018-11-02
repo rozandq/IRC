@@ -117,7 +117,8 @@ public class IrcProxy {
 		ircProxy.data.setText(s);
 		ircProxy.text.append(s+"\n");
 	   } catch (Exception je) {
-		   System.out.println("readListenerProxy problem : " + je.getMessage());
+		   System.out.println("readListenerProxy problem : ");
+                   je.printStackTrace();
 	   }
 	}
 }

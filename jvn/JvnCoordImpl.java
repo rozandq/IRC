@@ -8,16 +8,28 @@
 
 package jvn;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.Serializable;
 import java.net.SocketException;
+import java.rmi.RemoteException;
 import java.rmi.UnmarshalException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
-public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
+public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord, Serializable {
+    
+    private static final long serialVersionUID = 1L;
+    
     private HashMap<String, Integer> jvnObjectIds;
     private HashMap<Integer, JvnObject> jvnObjects;
     private HashMap<Integer, JvnRemoteServer> objectIdsLastVersionOwner;
@@ -29,16 +41,41 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
     * Default constructor
     * @throws JvnException
     **/
-	public JvnCoordImpl() throws Exception {
-		// to be completed
+    public JvnCoordImpl() throws RemoteException, IOException{
+
+        FileInputStream fin = null;
+        ObjectInputStream ois = null;
+
+        try {
+
+        fin = new FileInputStream("coord.ser");
+        ois = new ObjectInputStream(fin);
+        JvnCoordImpl coord = (JvnCoordImpl) ois.readObject();
+        
+        this.jvnObjectIds = coord.jvnObjectIds;
+        this.jvnObjects = coord.jvnObjects;
+        this.objectIdsLastVersionOwner = coord.objectIdsLastVersionOwner;
+        this.readLocks = coord.readLocks;
+        this.counterObjectId = coord.counterObjectId;
+        
+            System.out.println("Coordinateur chargé");
+        
+        } catch(FileNotFoundException e){            
             this.jvnObjectIds = new HashMap<>();
             this.jvnObjects = new HashMap<>();
             this.objectIdsLastVersionOwner = new HashMap<>();
             this.readLocks = new HashMap<>();
-            
-            this.counterObjectId = 0;
-	}
 
+            this.counterObjectId = 0;            
+        } catch(Exception e){
+            e.printStackTrace();
+        } finally {
+            if(fin != null) fin.close();
+            if(ois != null) ois.close();
+        }
+    }
+    
+    
     /**
     *  Allocate a NEW JVN object id (usually allocated to a 
     *  newly created JVN object)
@@ -65,6 +102,8 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
         this.objectIdsLastVersionOwner.put(id, js);
         this.readLocks.put(id, new ArrayList<>());
         this.readLocks.get(id).add(js);
+        
+        this.saveCoord();
     }
   
   /**
@@ -89,16 +128,24 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
   **/
     public synchronized Serializable jvnLockRead(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
         // to be completed
+        System.out.println("jvn.JvnCoordImpl.jvnLockRead()");
             Serializable state = null;
         try {
             if(this.objectIdsLastVersionOwner.get(joi) == null){
+                System.out.println("jvn.JvnCoordImpl.jvnLockRead() if");
                 state = this.jvnObjects.get(joi).jvnGetObjectState();
+                System.out.println("State : " + state);
 
             } else {
+                System.out.println("jvn.JvnCoordImpl.jvnLockRead() else 0 : " + this.objectIdsLastVersionOwner.get(joi));
                 state = this.objectIdsLastVersionOwner.get(joi).jvnInvalidateWriterForReader(joi);
+                System.out.println("jvn.JvnCoordImpl.jvnLockRead() else 1");
                 this.readLocks.get(joi).add(this.objectIdsLastVersionOwner.get(joi));
+                System.out.println("jvn.JvnCoordImpl.jvnLockRead() else 2");
                 this.objectIdsLastVersionOwner.put(joi, null);
+                System.out.println("jvn.JvnCoordImpl.jvnLockRead() else 3");
                 ((JvnObjectImpl)this.jvnObjects.get(joi)).setState(state);
+                System.out.println("State : " + state);
             }
 
             this.readLocks.get(joi).add(js);
@@ -109,7 +156,8 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
             state = this.jvnObjects.get(joi).jvnGetObjectState();
         }
         
-            return state;
+        this.saveCoord();
+        return state;
     }
 
   /**
@@ -142,6 +190,8 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
         }
         this.readLocks.get(joi).clear();
         System.out.println("Coord - LockWrite - Done");
+        
+        this.saveCoord();
         return state;
    }
 
@@ -161,7 +211,47 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord{
                this.objectIdsLastVersionOwner.put((Integer) mapentry.getKey(), null);
             }
         }
+        
+        this.saveCoord();
     }
+    
+    private synchronized void saveCoord(){
+        FileOutputStream fout = null;
+	ObjectOutputStream oos = null;
+        
+        try {
+            fout = new FileOutputStream("coord.ser");
+            oos = new ObjectOutputStream(fout);
+            oos.writeObject(this);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+
+	} finally {
+
+            if (fout != null) {
+                try {
+                    fout.close();
+		} catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+
+            if (oos != null) {
+		try {
+                    oos.close();
+		} catch (IOException ex) {
+                    ex.printStackTrace();
+		}
+            }
+        }
+            
+    } 
+    
+    public boolean jvnIsConnected() {
+        return true;
+    }
+    
+    
 }
 
  

@@ -16,7 +16,7 @@ import java.util.logging.Logger;
 public class JvnObjectImpl implements JvnObject {
     private Serializable state;
     private Lock lock;
-    int id;
+    private int id;
 
     public JvnObjectImpl(int id, Serializable s) {
         this.lock = Lock.W;
@@ -46,6 +46,7 @@ public class JvnObjectImpl implements JvnObject {
             case RWC:
                 throw new JvnException("You already have a read lock!");
         }
+        System.out.println("jvn.JvnObjectImpl.jvnLockRead() done");
     }
 
     @Override

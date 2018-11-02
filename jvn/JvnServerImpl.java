@@ -11,6 +11,7 @@ package jvn;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.*;
 import static java.lang.System.exit;
+import java.rmi.ConnectException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -22,7 +23,6 @@ import java.util.logging.Logger;
 
 public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer, JvnRemoteServer{
     private static HashMap<Integer, JvnObject> jvnObjects;
-    private static HashMap<Integer, String> jvnObjectNames;
     private static JvnRemoteCoord coord;
     
     // A JVN server is managed as a singleton 
@@ -35,12 +35,11 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     private JvnServerImpl() throws Exception {
             super();
             
-            
             this.jvnObjects = new HashMap<>();
-            this.jvnObjectNames = new HashMap<>();
-            Registry registry = LocateRegistry.getRegistry("127.0.0.1", 1333); 
-            coord = (JvnRemoteCoord) registry.lookup("coord_service");
-            System.out.println("Serveur : " + this.toString());
+            
+            this.connectToCoord();
+            
+            System.out.println("Server : " + this);
     }
 	
     /**
@@ -71,7 +70,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     public void jvnTerminate() throws jvn.JvnException {
         try {
             // to be completed
-            this.coord.jvnTerminate(this.js);
+            this.getCoord().jvnTerminate(this.js);
         } catch (RemoteException ex) {
             throw new JvnException("Error JvnServerImpl - jvnTerminate : " + ex);
         }
@@ -85,7 +84,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     public JvnObject jvnCreateObject(Serializable o) throws jvn.JvnException { 
         try {
             // to be completed
-            return new JvnObjectImpl(this.coord.jvnGetObjectId(), o);
+            return new JvnObjectImpl(this.getCoord().jvnGetObjectId(), o);
         } catch (RemoteException ex) {
             Logger.getLogger(JvnServerImpl.class.getName()).log(Level.SEVERE, null, ex);
             throw new JvnException("Error JvnServerImpl - jvnCreateObject");
@@ -101,8 +100,8 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     public void jvnRegisterObject(String jon, JvnObject jo) throws jvn.JvnException {
         try {
             // to be completed
-        	this.jvnObjects.put(jo.jvnGetObjectId(), jo);
-            this.coord.jvnRegisterObject(jon, jo, this.js);
+            this.jvnObjects.put(jo.jvnGetObjectId(), jo);
+            this.getCoord().jvnRegisterObject(jon, jo, this.js);
         } catch (RemoteException ex) {
             Logger.getLogger(JvnServerImpl.class.getName()).log(Level.SEVERE, null, ex);
             throw new JvnException("Error JvnServerImpl - jvnRegisterObject");
@@ -117,7 +116,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     **/
     public JvnObject jvnLookupObject(String jon) throws jvn.JvnException {
         try {
-        	JvnObject jo = this.coord.jvnLookupObject(jon, this.js);
+        	JvnObject jo = this.getCoord().jvnLookupObject(jon, this.js);
         	if (jo != null) this.jvnObjects.put(jo.jvnGetObjectId(), jo);
             return jo;
         } catch (RemoteException ex) {
@@ -134,8 +133,13 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     **/
     public Serializable jvnLockRead(int joi) throws JvnException {
         try {
+            System.out.println("jvn.JvnServerImpl.jvnLockRead()");
             // to be completed
-            return this.coord.jvnLockRead(joi, this.js);
+            Serializable s = this.getCoord().jvnLockRead(joi, this.js);
+            System.out.println("jvn.JvnServerImpl.jvnLockRead() done");
+            return s;
+            
+            
             
         } catch (RemoteException ex) {
             System.out.println("Erreur JvnServeurImpl - jvnLockRead : " + ex);
@@ -153,7 +157,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
         System.out.println("Server - LockWrite");
            try {
             // to be completed
-            Serializable state = this.coord.jvnLockWrite(joi, this.js);
+            Serializable state = this.getCoord().jvnLockWrite(joi, this.js);
             System.out.println("Server - LockWrite - Done");
             
             return state;
@@ -198,8 +202,47 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     **/
     public synchronized Serializable jvnInvalidateWriterForReader(int joi) throws java.rmi.RemoteException,jvn.JvnException { 
            // to be completed 
+           System.out.println("jvn.JvnServerImpl.jvnInvalidateWriterForReader()");
            return this.jvnObjects.get(joi).jvnInvalidateWriterForReader();
     };
+
+    private JvnRemoteCoord getCoord() {
+        System.out.println("jvn.JvnServerImpl.getCoord()");
+        try {
+            this.coord.jvnIsConnected();
+        } catch (ConnectException ex) {
+            this.connectToCoord();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        System.out.println("jvn.JvnServerImpl.getCoord() done");
+        return coord;
+    }
+    
+    
+    
+    private void connectToCoord(){
+        System.out.println("jvn.JvnServerImpl.connectToCoord()");
+        boolean connected = false;
+        while(!connected){
+            try {
+                Registry registry = LocateRegistry.getRegistry("127.0.0.1", 1333); 
+                coord = (JvnRemoteCoord) registry.lookup("coord_service");
+                connected = true;
+                System.out.println("jvn.JvnServerImpl.connectToCoord() ok ");
+            } catch (ConnectException ex) {
+                System.out.println("Connexion en cours...");
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException ex1) {
+                    ex1.printStackTrace();
+                }
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        System.out.println("jvn.JvnServerImpl.connectToCoord() done");
+    }
 }
 
  

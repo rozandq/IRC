@@ -72,6 +72,14 @@ public interface JvnRemoteCoord extends Remote {
 	**/
   public void jvnTerminate(JvnRemoteServer js)
 	 throws java.rmi.RemoteException, JvnException;
+  
+  
+  /**
+	* Is the coordinator connected
+	* @throws java.rmi.RemoteException, JvnException
+	**/
+  public boolean jvnIsConnected()
+	 throws java.rmi.RemoteException, JvnException;
 
  }
 
