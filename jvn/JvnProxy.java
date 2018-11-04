@@ -8,6 +8,7 @@ package jvn;
 import java.io.Serializable;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import test.coordMain;
 
 /**
  *
@@ -44,7 +45,7 @@ public class JvnProxy implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) 
       throws Throwable {
         
-        System.out.println("Methode : " + method.getName());
+        if(coordMain.printDebug) System.out.println("Methode : " + method.getName());
         
         
         

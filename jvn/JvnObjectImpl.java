@@ -8,6 +8,7 @@ package jvn;
 import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import test.coordMain;
 
 /**
  *
@@ -25,8 +26,9 @@ public class JvnObjectImpl implements JvnObject {
     }
 
     @Override
-    public synchronized void jvnLockRead() throws JvnException {
-        System.out.println("Object - LockRead");
+    public void jvnLockRead() throws JvnException {
+        if(coordMain.printDebug) System.out.println("Object - LockRead");
+        
         JvnServerImpl serv = JvnServerImpl.jvnGetServer();
         switch(this.lock){
             case NL:
@@ -39,19 +41,21 @@ public class JvnObjectImpl implements JvnObject {
             case WC:
                 this.lock = Lock.RWC;
                 break;
-            case R:
-                throw new JvnException("You already have a read lock!");
-            case W:
-                throw new JvnException("You already have a write lock!");
-            case RWC:
-                throw new JvnException("You already have a read lock!");
+            default:
+                if(coordMain.printDebug) System.out.println("You already have a lock!");
         }
-        System.out.println("jvn.JvnObjectImpl.jvnLockRead() done");
+        
+//        if(this.lock == Lock.NL) this.state = serv.jvnLockRead(this.jvnGetObjectId());
+//        
+//        if(this.lock == Lock.NL || this.lock == Lock.RC) this.lock = Lock.R;
+//        else if(this.lock == Lock.WC)  this.lock = Lock.RWC;
+        
+        if(coordMain.printDebug) System.out.println("jvn.JvnObjectImpl.jvnLockRead() Done");
     }
 
     @Override
-    public synchronized void jvnLockWrite() throws JvnException {
-        System.out.println("Object - LockWrite");
+    public void jvnLockWrite() throws JvnException {
+        if(coordMain.printDebug) System.out.println("Object - LockWrite");
         JvnServerImpl serv = JvnServerImpl.jvnGetServer();
         switch(this.lock){
             case NL:
@@ -65,19 +69,15 @@ public class JvnObjectImpl implements JvnObject {
             case WC:
                 this.lock = Lock.W;
                 break;
-            case R:
-                throw new JvnException("You already have a read lock!");
-            case W:
-                throw new JvnException("You already have a write lock!");
-            case RWC:
-                throw new JvnException("You already have a read lock!");
+            default:
+                if(coordMain.printDebug) System.out.println("You already have a lock!");
         }
-        System.out.println("Object - LockWrite - Done");
+        if(coordMain.printDebug) System.out.println("Object - LockWrite - Done");
     }
 
     @Override
     public synchronized void jvnUnLock() throws JvnException {
-        System.out.println("Unlock");
+        if(coordMain.printDebug) System.out.println("Unlock");
         switch(this.lock){
             case R:
                 this.lock = Lock.RC;
@@ -88,10 +88,10 @@ public class JvnObjectImpl implements JvnObject {
                 this.lock = Lock.WC;
                 break;
             default:
-                throw new JvnException("JvnObjectImpl - jvnUnLock : " + this.lock);
+                System.err.println("JvnObjectImpl - jvnUnLock : " + this.lock);
                 
         }
-        System.out.println("Notify");
+        if(coordMain.printDebug) System.out.println("Notify");
         notify();          
         
     }
@@ -105,35 +105,36 @@ public class JvnObjectImpl implements JvnObject {
     public synchronized Serializable jvnGetObjectState() throws JvnException {
         return this.state;
     }
+    
+    public synchronized Lock getLock(){
+        return this.lock;
+    }
 
     @Override
     public synchronized void jvnInvalidateReader() throws JvnException {
-    	System.out.println("invR");
+    	if(coordMain.printDebug) System.out.println("jvn.JvnObjectImpl.jvnInvalidateReader()");
         switch(this.lock){
             case RC:
                 this.lock = Lock.NL;
                 break;
             case R:
                 try {
-                    System.out.println("(R)Waiting..");
-                    System.out.flush();
+                    if(coordMain.printDebug) System.out.println("(R)Waiting..");
                     wait();
                 } catch (InterruptedException ex) {
-                    throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
+                    System.err.println("JvnObjectImpl - jvnInvalidateReader wait");
                 }
                 this.lock = Lock.NL;
                 break;
-            case NL:
-                break;
             default:
-                throw new JvnException("JvnObjectImpl - jvnInvalidateReader : " + this.lock);
-                
+                System.err.println("JvnObjectImpl - jvnInvalidateReader : " + this.lock); 
         }
+        if(coordMain.printDebug) System.out.println("jvn.JvnObjectImpl.jvnInvalidateReader() Done");
     }
 
     @Override
     public synchronized Serializable jvnInvalidateWriter() throws JvnException {
-    	System.out.println("invW");
+        if(coordMain.printDebug) System.out.println("jvn.JvnObjectImpl.jvnInvalidateWriter()");
         switch(this.lock){
             case WC:
                 this.lock = Lock.NL;
@@ -142,38 +143,39 @@ public class JvnObjectImpl implements JvnObject {
             case RWC:
             case W:
                 try {
-                    System.out.println("(W)Waiting..");
-                    System.out.flush();
+                    if(coordMain.printDebug) System.out.println("(W)Waiting..");
                     wait();
                 } catch (InterruptedException ex) {
-                    throw new JvnException("JvnObjectImpl - jvnInvalidateReader wait");
+                    System.err.println("JvnObjectImpl - jvnInvalidateReader wait");
                 }
                 this.lock = Lock.NL;
                 break;
             case NL:
                 break;
             default:
-                throw new JvnException("JvnObjectImpl - jvnInvalidateReader : " + this.lock);
+                System.err.println("JvnObjectImpl - jvnInvalidateWriter : " + this.lock);
                 
         }
+        
+        if(coordMain.printDebug) System.out.println("jvn.JvnObjectImpl.jvnInvalidateWriter() Done");
         return this.state;
     }
 
     @Override
     public synchronized Serializable jvnInvalidateWriterForReader() throws JvnException {
-    	System.out.println("invWFR");
+        if(coordMain.printDebug) System.out.println("jvn.JvnObjectImpl.jvnInvalidateWriterForReader()");
         switch(this.lock){
             case WC:
                 this.lock = Lock.RC;
                 break;
             case W:
                 try {
-                    System.out.println("(WFR)Waiting..");
+                    if(coordMain.printDebug) System.out.println("(WFR)Waiting..");
                     wait();
                     this.lock = Lock.RC;
                     break;
                 } catch (InterruptedException ex) {
-                    throw new JvnException("Error JvnObjectImpl - jvnInvalidateWriterForReader");
+                    System.err.println("Error JvnObjectImpl - jvnInvalidateWriterForReader");
                 }
             case RWC:
                 this.lock = Lock.R;
@@ -183,7 +185,7 @@ public class JvnObjectImpl implements JvnObject {
             default:
                 break;
         }
-        
+        if(coordMain.printDebug) System.out.println("jvn.JvnObjectImpl.jvnInvalidateWriterForReader() Done");
         return this.state;
     }
 

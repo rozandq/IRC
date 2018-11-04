@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import test.coordMain;
 
 
 public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord, Serializable {
@@ -58,7 +59,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
         this.readLocks = coord.readLocks;
         this.counterObjectId = coord.counterObjectId;
         
-            System.out.println("Coordinateur chargé");
+        if(coordMain.printDebug) System.out.println("Coordinateur chargé");
         
         } catch(FileNotFoundException e){            
             this.jvnObjectIds = new HashMap<>();
@@ -128,24 +129,17 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
   **/
     public synchronized Serializable jvnLockRead(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
         // to be completed
-        System.out.println("jvn.JvnCoordImpl.jvnLockRead()");
-            Serializable state = null;
+        if(coordMain.printDebug) System.out.println("jvn.JvnCoordImpl.jvnLockRead()");
+        Serializable state = null;
         try {
             if(this.objectIdsLastVersionOwner.get(joi) == null){
-                System.out.println("jvn.JvnCoordImpl.jvnLockRead() if");
                 state = this.jvnObjects.get(joi).jvnGetObjectState();
-                System.out.println("State : " + state);
 
             } else {
-                System.out.println("jvn.JvnCoordImpl.jvnLockRead() else 0 : " + this.objectIdsLastVersionOwner.get(joi));
                 state = this.objectIdsLastVersionOwner.get(joi).jvnInvalidateWriterForReader(joi);
-                System.out.println("jvn.JvnCoordImpl.jvnLockRead() else 1");
                 this.readLocks.get(joi).add(this.objectIdsLastVersionOwner.get(joi));
-                System.out.println("jvn.JvnCoordImpl.jvnLockRead() else 2");
                 this.objectIdsLastVersionOwner.put(joi, null);
-                System.out.println("jvn.JvnCoordImpl.jvnLockRead() else 3");
                 ((JvnObjectImpl)this.jvnObjects.get(joi)).setState(state);
-                System.out.println("State : " + state);
             }
 
             this.readLocks.get(joi).add(js);
@@ -157,6 +151,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
         }
         
         this.saveCoord();
+        if(coordMain.printDebug) System.out.println("jvn.JvnCoordImpl.jvnLockRead() Done");
         return state;
     }
 
@@ -168,7 +163,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
   * @throws java.rmi.RemoteException, JvnException
   **/
    public synchronized Serializable jvnLockWrite(int joi, JvnRemoteServer js) throws java.rmi.RemoteException, JvnException{
-        System.out.println("Coord - LockWrite");
+        if(coordMain.printDebug) System.out.println("Coord - LockWrite");
     // to be completed
         Serializable state = null;
 
@@ -179,17 +174,17 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 
 
         }
-        System.out.println("InvalidateWriter done");
+        if(coordMain.printDebug) System.out.println("InvalidateWriter done");
         this.objectIdsLastVersionOwner.put(joi, js);
         for(JvnRemoteServer jvnServer : this.readLocks.get(joi)){
             if(! jvnServer.equals(js)){
-                System.out.println("InvalidateReader : " + jvnServer.toString());
+                if(coordMain.printDebug) System.out.println("InvalidateReader : " + jvnServer.toString());
                 jvnServer.jvnInvalidateReader(joi);
-                System.out.println("InvalidateReader Done");
+                if(coordMain.printDebug) System.out.println("InvalidateReader Done");
             }
         }
         this.readLocks.get(joi).clear();
-        System.out.println("Coord - LockWrite - Done");
+        if(coordMain.printDebug) System.out.println("Coord - LockWrite - Done");
         
         this.saveCoord();
         return state;
@@ -202,7 +197,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
 	**/
     public synchronized void jvnTerminate(JvnRemoteServer js) throws java.rmi.RemoteException, JvnException {
 	 // to be completed
-        System.out.println("Coor - terminate");
+        if(coordMain.printDebug) System.out.println("Coor - terminate");
         Serializable state;
         for(Map.Entry mapentry : this.objectIdsLastVersionOwner.entrySet()){
             if( (mapentry.getValue() != null) && (((JvnRemoteServer)mapentry.getValue()).equals(js)) ){

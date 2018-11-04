@@ -15,6 +15,8 @@ import jvn.*;
  */
 public class coordMain {
 
+    public static boolean printDebug = true;
+    
     /**
      * @param args the command line arguments
      */
@@ -24,7 +26,7 @@ public class coordMain {
         Registry registry = LocateRegistry.createRegistry(1333);
         registry.bind("coord_service", coord);
         
-        System.out.println("Coordinator ready !");
+        if(coordMain.printDebug) System.out.println("Coordinator ready !");
     }
     
 }

@@ -10,6 +10,7 @@ package irc;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jvn.JvnAnnotation;
+import test.coordMain;
 
 public class Sentence implements SentenceInterface, java.io.Serializable {
 	String 		data;
@@ -20,7 +21,7 @@ public class Sentence implements SentenceInterface, java.io.Serializable {
 	
         @JvnAnnotation(type = JvnAnnotation.JvnAnnotationType.WRITE)
 	public void write(String text) {
-            System.out.println("irc.Sentence.write()");;
+            if(coordMain.printDebug) System.out.println("irc.Sentence.write()");;
             data = text;
             
 //            try {
@@ -32,7 +33,7 @@ public class Sentence implements SentenceInterface, java.io.Serializable {
         
         @JvnAnnotation(type = JvnAnnotation.JvnAnnotationType.READ)
 	public String read() {
-            System.out.println("irc.Sentence.read()");
+            if(coordMain.printDebug) System.out.println("irc.Sentence.read()");
             return data;	
 	}
 	
