@@ -1,5 +1,5 @@
 MARION Baptiste
-Rozand Quentin
+ROZAND Quentin
 
 Avancé du travail :
 
