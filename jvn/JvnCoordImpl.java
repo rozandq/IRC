@@ -16,6 +16,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.rmi.server.UnicastRemoteObject;
 import java.io.Serializable;
+import java.net.ConnectException;
 import java.net.SocketException;
 import java.rmi.RemoteException;
 import java.rmi.UnmarshalException;
@@ -166,25 +167,33 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
         if(coordMain.printDebug) System.out.println("Coord - LockWrite");
     // to be completed
         Serializable state = null;
+        
+            if(this.objectIdsLastVersionOwner.get(joi) == null){
+                state = this.jvnObjects.get(joi).jvnGetObjectState();
+            } else {
+                try{
+                    state = this.objectIdsLastVersionOwner.get(joi).jvnInvalidateWriter(joi);
+                    ((JvnObjectImpl)this.jvnObjects.get(joi)).setState(state);                    
+                } catch (UnmarshalException ex){
+                    state = this.jvnObjects.get(joi).jvnGetObjectState();
+                }
 
-        if(this.objectIdsLastVersionOwner.get(joi) == null){
-            state = this.jvnObjects.get(joi).jvnGetObjectState();
-        } else {
-            state = this.objectIdsLastVersionOwner.get(joi).jvnInvalidateWriter(joi);
 
-
-        }
-        if(coordMain.printDebug) System.out.println("InvalidateWriter done");
-        this.objectIdsLastVersionOwner.put(joi, js);
-        for(JvnRemoteServer jvnServer : this.readLocks.get(joi)){
-            if(! jvnServer.equals(js)){
-                if(coordMain.printDebug) System.out.println("InvalidateReader : " + jvnServer.toString());
-                jvnServer.jvnInvalidateReader(joi);
-                if(coordMain.printDebug) System.out.println("InvalidateReader Done");
             }
-        }
-        this.readLocks.get(joi).clear();
-        if(coordMain.printDebug) System.out.println("Coord - LockWrite - Done");
+            this.objectIdsLastVersionOwner.put(joi, js);
+            if(coordMain.printDebug) System.out.println("InvalidateWriter done");
+            
+            for(JvnRemoteServer jvnServer : this.readLocks.get(joi)){
+                if(! jvnServer.equals(js)){
+                    try{
+                        if(coordMain.printDebug) System.out.println("InvalidateReader : " + jvnServer.toString());
+                        jvnServer.jvnInvalidateReader(joi);
+                        if(coordMain.printDebug) System.out.println("InvalidateReader Done");
+                    } catch (UnmarshalException ex){}
+                }
+            }
+            this.readLocks.get(joi).clear();
+            if(coordMain.printDebug) System.out.println("Coord - LockWrite - Done");
         
         this.saveCoord();
         return state;
@@ -242,9 +251,6 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
             
     } 
     
-    public boolean jvnIsConnected() {
-        return true;
-    }
     
     
 }

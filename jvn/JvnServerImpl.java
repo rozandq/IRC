@@ -12,6 +12,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.io.*;
 import java.rmi.ConnectException;
 import java.rmi.RemoteException;
+import java.rmi.UnmarshalException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.HashMap;
@@ -79,8 +80,12 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
                     
                 }
             }
-            this.getCoord().jvnTerminate(this.js);
-        } catch (RemoteException ex) {
+//            this.getCoord().jvnTerminate(this.js);
+            this.coord.jvnTerminate(js);
+        } catch (UnmarshalException|ConnectException ex) {
+            this.connectToCoord();
+            this.jvnTerminate();
+        } catch (Exception ex) {
             throw new JvnException("Error JvnServerImpl - jvnTerminate : " + ex);
         }
     } 
@@ -93,8 +98,12 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     public JvnObject jvnCreateObject(Serializable o) throws jvn.JvnException { 
         try {
             // to be completed
-            return new JvnObjectImpl(this.getCoord().jvnGetObjectId(), o);
-        } catch (RemoteException ex) {
+//            return new JvnObjectImpl(this.getCoord().jvnGetObjectId(), o);
+            return new JvnObjectImpl(this.coord.jvnGetObjectId(), o);
+        } catch (UnmarshalException|ConnectException ex) {
+            this.connectToCoord();
+            return this.jvnCreateObject(o);
+        } catch (Exception ex) {
             Logger.getLogger(JvnServerImpl.class.getName()).log(Level.SEVERE, null, ex);
             throw new JvnException("Error JvnServerImpl - jvnCreateObject");
         }
@@ -110,8 +119,12 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
         try {
             // to be completed
             this.jvnObjects.put(jo.jvnGetObjectId(), jo);
-            this.getCoord().jvnRegisterObject(jon, jo, this.js);
-        } catch (RemoteException ex) {
+//            this.getCoord().jvnRegisterObject(jon, jo, this.js);
+            this.coord.jvnRegisterObject(jon, jo, this.js);
+        } catch (UnmarshalException|ConnectException ex) {
+            this.connectToCoord();
+            this.jvnRegisterObject(jon, jo);
+        } catch (Exception ex) {
             Logger.getLogger(JvnServerImpl.class.getName()).log(Level.SEVERE, null, ex);
             throw new JvnException("Error JvnServerImpl - jvnRegisterObject");
         }
@@ -125,10 +138,14 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
     **/
     public JvnObject jvnLookupObject(String jon) throws jvn.JvnException {
         try {
-        	JvnObject jo = this.getCoord().jvnLookupObject(jon, this.js);
-        	if (jo != null) this.jvnObjects.put(jo.jvnGetObjectId(), jo);
+//            JvnObject jo = this.getCoord().jvnLookupObject(jon, this.js);
+            JvnObject jo = this.coord.jvnLookupObject(jon, this.js);
+            if (jo != null) this.jvnObjects.put(jo.jvnGetObjectId(), jo);
             return jo;
-        } catch (RemoteException ex) {
+        } catch (UnmarshalException|ConnectException ex) {
+            this.connectToCoord();
+            return this.jvnLookupObject(jon);
+        } catch (Exception ex) {
             Logger.getLogger(JvnServerImpl.class.getName()).log(Level.SEVERE, null, ex);
             throw new JvnException("Error JvnServerImpl - jvnLookupObject");
         }
@@ -144,13 +161,17 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
         try {
             if(coordMain.printDebug) System.out.println("jvn.JvnServerImpl.jvnLockRead()");
             // to be completed
-            Serializable s = this.getCoord().jvnLockRead(joi, this.js);
+//            Serializable s = this.getCoord().jvnLockRead(joi, this.js);
+            Serializable s = this.coord.jvnLockRead(joi, this.js);
             if(coordMain.printDebug) System.out.println("jvn.JvnServerImpl.jvnLockRead() Done");
             return s;
             
             
             
-        } catch (RemoteException ex) {
+        } catch (UnmarshalException|ConnectException ex) {
+            this.connectToCoord();
+            return this.jvnLockRead(joi);
+        } catch (Exception ex) {
             System.out.println("Erreur JvnServeurImpl - jvnLockRead : " + ex);
             return null;
         }
@@ -166,11 +187,15 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
         if(coordMain.printDebug) System.out.println("Server - LockWrite");
            try {
             // to be completed
-            Serializable state = this.getCoord().jvnLockWrite(joi, this.js);
+//            Serializable state = this.getCoord().jvnLockWrite(joi, this.js);
+            Serializable state = this.coord.jvnLockWrite(joi, this.js);
             if(coordMain.printDebug) System.out.println("Server - LockWrite - Done");
             
             return state;
             
+        } catch (UnmarshalException|ConnectException ex) {
+            this.connectToCoord();
+            return this.jvnLockWrite(joi);
         } catch (Exception ex) {
             System.out.println("Erreur JvnServeurImpl - jvnLockWrite : " + ex);
             return null;
@@ -215,20 +240,6 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
            if(coordMain.printDebug) System.out.println("jvn.JvnServerImpl.jvnInvalidateWriterForReader()");
            return this.jvnObjects.get(joi).jvnInvalidateWriterForReader();
     };
-
-    private JvnRemoteCoord getCoord() {
-        if(coordMain.printDebug) System.out.println("jvn.JvnServerImpl.getCoord()");
-        try {
-            this.coord.jvnIsConnected();
-        } catch (ConnectException ex) {
-            this.connectToCoord();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        if(coordMain.printDebug) System.out.println("jvn.JvnServerImpl.getCoord() done");
-        return coord;
-    }
-    
     
     
     private void connectToCoord(){

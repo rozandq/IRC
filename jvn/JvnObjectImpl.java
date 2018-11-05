@@ -26,7 +26,7 @@ public class JvnObjectImpl implements JvnObject {
     }
 
     @Override
-    public void jvnLockRead() throws JvnException {
+    public synchronized void jvnLockRead() throws JvnException {
         if(coordMain.printDebug) System.out.println("Object - LockRead");
         
         JvnServerImpl serv = JvnServerImpl.jvnGetServer();
@@ -54,7 +54,7 @@ public class JvnObjectImpl implements JvnObject {
     }
 
     @Override
-    public void jvnLockWrite() throws JvnException {
+    public synchronized void jvnLockWrite() throws JvnException {
         if(coordMain.printDebug) System.out.println("Object - LockWrite");
         JvnServerImpl serv = JvnServerImpl.jvnGetServer();
         switch(this.lock){
@@ -125,6 +125,8 @@ public class JvnObjectImpl implements JvnObject {
                     System.err.println("JvnObjectImpl - jvnInvalidateReader wait");
                 }
                 this.lock = Lock.NL;
+                break;
+            case NL:
                 break;
             default:
                 System.err.println("JvnObjectImpl - jvnInvalidateReader : " + this.lock); 
