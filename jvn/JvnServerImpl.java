@@ -82,7 +82,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
             }
 //            this.getCoord().jvnTerminate(this.js);
             this.coord.jvnTerminate(js);
-        } catch (UnmarshalException|ConnectException ex) {
+        } catch (RemoteException ex) {
             this.connectToCoord();
             this.jvnTerminate();
         } catch (Exception ex) {
@@ -100,7 +100,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
             // to be completed
 //            return new JvnObjectImpl(this.getCoord().jvnGetObjectId(), o);
             return new JvnObjectImpl(this.coord.jvnGetObjectId(), o);
-        } catch (UnmarshalException|ConnectException ex) {
+        } catch (RemoteException ex) {
             this.connectToCoord();
             return this.jvnCreateObject(o);
         } catch (Exception ex) {
@@ -121,7 +121,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
             this.jvnObjects.put(jo.jvnGetObjectId(), jo);
 //            this.getCoord().jvnRegisterObject(jon, jo, this.js);
             this.coord.jvnRegisterObject(jon, jo, this.js);
-        } catch (UnmarshalException|ConnectException ex) {
+        } catch (RemoteException ex) {
             this.connectToCoord();
             this.jvnRegisterObject(jon, jo);
         } catch (Exception ex) {
@@ -142,7 +142,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
             JvnObject jo = this.coord.jvnLookupObject(jon, this.js);
             if (jo != null) this.jvnObjects.put(jo.jvnGetObjectId(), jo);
             return jo;
-        } catch (UnmarshalException|ConnectException ex) {
+        } catch (RemoteException ex) {
             this.connectToCoord();
             return this.jvnLookupObject(jon);
         } catch (Exception ex) {
@@ -168,11 +168,11 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
             
             
             
-        } catch (UnmarshalException|ConnectException ex) {
+        } catch (RemoteException ex) {
             this.connectToCoord();
             return this.jvnLockRead(joi);
         } catch (Exception ex) {
-            System.out.println("Erreur JvnServeurImpl - jvnLockRead : " + ex);
+            System.err.println("Erreur JvnServeurImpl - jvnLockRead : " + ex);
             return null;
         }
     }
@@ -193,7 +193,7 @@ public class JvnServerImpl extends UnicastRemoteObject implements JvnLocalServer
             
             return state;
             
-        } catch (UnmarshalException|ConnectException ex) {
+        } catch (RemoteException ex) {
             this.connectToCoord();
             return this.jvnLockWrite(joi);
         } catch (Exception ex) {

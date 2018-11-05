@@ -144,7 +144,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
             }
 
             this.readLocks.get(joi).add(js);
-        } catch (UnmarshalException ex){
+        } catch (RemoteException ex){
             System.out.println("Hôte perdu");
             this.objectIdsLastVersionOwner.put(joi, null);
             this.readLocks.get(joi).add(js);
@@ -174,7 +174,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
                 try{
                     state = this.objectIdsLastVersionOwner.get(joi).jvnInvalidateWriter(joi);
                     ((JvnObjectImpl)this.jvnObjects.get(joi)).setState(state);                    
-                } catch (UnmarshalException ex){
+                } catch (RemoteException ex){
                     state = this.jvnObjects.get(joi).jvnGetObjectState();
                 }
 
@@ -189,7 +189,7 @@ public class JvnCoordImpl extends UnicastRemoteObject implements JvnRemoteCoord,
                         if(coordMain.printDebug) System.out.println("InvalidateReader : " + jvnServer.toString());
                         jvnServer.jvnInvalidateReader(joi);
                         if(coordMain.printDebug) System.out.println("InvalidateReader Done");
-                    } catch (UnmarshalException ex){}
+                    } catch (RemoteException ex){}
                 }
             }
             this.readLocks.get(joi).clear();
