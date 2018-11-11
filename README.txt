@@ -7,7 +7,7 @@ Avancé du travail :
 - Javanaise v2 : OK
 - Panne client : OK
 - Redémarrage coordinateur : OK
-- Panne coordinateur : En Cours
+- Panne coordinateur : OK
 
 Bugs connus :
 - Problèmes de synchronisation en mode burst
